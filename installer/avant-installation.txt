@@ -1,0 +1,13 @@
+Thermal Pilot — Installation pour votre compte Windows
+
+L’assistant installe l’application, son runtime .NET et les raccourcis. Aucun SDK ni runtime .NET séparé n’est nécessaire.
+
+PawnIO est un prérequis séparé pour accéder aux sondes CPU qui en ont besoin. Il n’est pas inclus dans cet installeur. S’il est déjà installé, ne le réinstallez pas. L’application et la dernière page de cet assistant permettent d’ouvrir sa page officielle.
+
+Après installation, ouvrez Thermal Pilot et choisissez « Relancer en administrateur » pour lire les sondes et réguler le processeur. La compatibilité des sondes et l’efficacité du bridage dépendent du matériel.
+
+L’option « Démarrer la régulation au démarrage de Windows » se configure dans l’application. Elle lance la régulation dans la zone de notification à l’ouverture de votre session, avec votre dernière température cible.
+
+Pour une mise à jour ou une désinstallation, quittez d’abord Thermal Pilot depuis son icône près de l’horloge. La désinstallation retire la tâche de démarrage de votre compte si elle pointe vers le dossier désinstallé, rétablit un éventuel profil temporaire et conserve votre température cible. Le retrait d’une tâche élevée peut demander une confirmation administrateur. PawnIO est partagé avec d’autres utilitaires et reste installé.
+
+Si le démarrage automatique utilisait auparavant une copie portable, ouvrez l’application installée et décochez puis recochez cette option pour utiliser le nouveau dossier.

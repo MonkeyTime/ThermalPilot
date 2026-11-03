@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ThermalPilot.Core/ThermalPilot.Core.csproj" />
+    <Project Path="src/ThermalPilot/ThermalPilot.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ThermalPilot.Tests/ThermalPilot.Tests.csproj" />
+  </Folder>
+</Solution>

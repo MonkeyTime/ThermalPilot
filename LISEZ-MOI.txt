@@ -1,0 +1,33 @@
+THERMAL PILOT — PREMIER LANCEMENT
+
+1. Avec l’installeur .exe : suivre l’assistant, puis ouvrir Thermal Pilot
+   depuis le menu Démarrer. La désinstallation se fait dans les applications Windows.
+   Avec le ZIP portable : extraire TOUT le contenu dans un dossier permanent.
+   Ne pas lancer l’application directement depuis l’archive.
+
+2. .NET est inclus. Aucun runtime .NET ni SDK n’est à installer.
+
+3. PawnIO n’est PAS inclus dans ce ZIP. Il doit être installé séparément
+   pour accéder aux sondes CPU qui en ont besoin. S’il est déjà installé
+   (par exemple pour un autre utilitaire), il n’est pas nécessaire de le réinstaller.
+   L’application détecte son absence et propose un bouton vers cette page officielle :
+   https://github.com/namazso/PawnIO.Setup/releases/latest
+   Installer PawnIO, puis relancer Thermal Pilot. Un redémarrage de Windows
+   peut être nécessaire si le programme d’installation le demande.
+
+4. Lancer ThermalPilot.exe, puis choisir « Relancer en administrateur ».
+   Attendre une température CPU valide, choisir la cible et activer la régulation.
+   La compatibilité des sondes et l’effet du bridage dépendent du matériel.
+
+5. Option « Démarrer la régulation au démarrage de Windows » :
+   à cocher en administrateur. Le lancement se fait à l’ouverture de votre
+   session Windows, en arrière-plan, avec la dernière température cible enregistrée.
+   Conserver ce dossier à son emplacement. Pour déplacer ou supprimer l’application,
+   décocher l’option avant. Après déplacement, la réactiver depuis le nouveau dossier.
+
+La température cible est enregistrée à chaque modification du curseur et à la fermeture.
+L’icône près de l’horloge permet de rouvrir l’application ou d’arrêter et quitter.
+La fermeture rétablit le profil d’alimentation initial ; l’option de démarrage
+reste enregistrée pour la prochaine ouverture de session Windows.
+
+Consulter README.md pour les détails et limites de cette version.

@@ -1,0 +1,55 @@
+Third-party packages resolved for Thermal Pilot. Only platform-specific runtime assets for Windows x64 are distributed. Libraries are unmodified.
+
+BlackSharp.Core/1.0.7
+Authors: BlackSharp.Core
+License: MPL-2.0
+Source: https://github.com/Blacktempel/BlackSharp
+Package: https://www.nuget.org/packages/BlackSharp.Core/1.0.7
+
+DiskInfoToolkit/1.1.2
+Authors: DiskInfoToolkit
+License: MPL-2.0
+Source: https://github.com/Blacktempel/DiskInfoToolkit
+Package: https://www.nuget.org/packages/DiskInfoToolkit/1.1.2
+
+HidSharp/2.6.4
+Authors: James F. Bellinger
+License: LICENSE.txt
+Source: https://software.seekye.com/hidsharp
+Package: https://www.nuget.org/packages/HidSharp/2.6.4
+
+LibreHardwareMonitorLib/0.9.6
+Authors: LibreHardwareMonitorLib
+License: MPL-2.0
+Source: https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
+Package: https://www.nuget.org/packages/LibreHardwareMonitorLib/0.9.6
+
+Mono.Posix.NETStandard/1.0.0
+Authors: Microsoft
+License: 
+Source: https://go.microsoft.com/fwlink/?linkid=869051
+Package: https://www.nuget.org/packages/Mono.Posix.NETStandard/1.0.0
+
+RAMSPDToolkit-NDD/1.4.2
+Authors: RAMSPDToolkit-NDD
+License: MPL-2.0
+Source: https://github.com/Blacktempel/RAMSPDToolkit
+Package: https://www.nuget.org/packages/RAMSPDToolkit-NDD/1.4.2
+
+System.IO.FileSystem.AccessControl/5.0.0
+Authors: Microsoft
+License: MIT
+Source: https://github.com/dotnet/runtime
+Package: https://www.nuget.org/packages/System.IO.FileSystem.AccessControl/5.0.0
+
+System.IO.Ports/10.0.3
+Authors: Microsoft
+License: MIT
+Source: https://dot.net/
+Package: https://www.nuget.org/packages/System.IO.Ports/10.0.3
+
+System.Management/10.0.2
+Authors: Microsoft
+License: MIT
+Source: https://dot.net/
+Package: https://www.nuget.org/packages/System.Management/10.0.2
