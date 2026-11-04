@@ -11,8 +11,10 @@ public interface IPowerPlatform
     void SetLimit(Guid scheme, int percent);
 }
 
+public record ManagedScheme(Guid Original, Guid Temporary);
+public record PowerSynchronization(bool ProfileChanged, bool Pending);
 public record SessionJournal(Guid Id, Guid Original, Guid Temporary, int OwnerPid,
-    long OwnerStartTicks, DateTimeOffset Heartbeat);
+    long OwnerStartTicks, DateTimeOffset Heartbeat, IReadOnlyList<ManagedScheme>? Schemes = null, int Limit = 100);
 
 /// <summary>Caller serializes access across the UI process and recovery process.</summary>
 public sealed class PowerSession(IPowerPlatform platform, string journalPath)
@@ -33,8 +35,9 @@ public sealed class PowerSession(IPowerPlatform platform, string journalPath)
     public SessionJournal Prepare(int pid, long startTicks)
     {
         if (Read() is not null) throw new InvalidOperationException("Une session doit d’abord être restaurée.");
-        var journal = new SessionJournal(Guid.NewGuid(), platform.ActiveScheme, Guid.NewGuid(),
-            pid, startTicks, DateTimeOffset.UtcNow);
+        Guid original = platform.ActiveScheme, temporary = Guid.NewGuid();
+        var journal = new SessionJournal(Guid.NewGuid(), original, temporary,
+            pid, startTicks, DateTimeOffset.UtcNow, [new(original, temporary)]);
         // Journal precedes all mutations, including duplication, so interrupted startup is recoverable.
         Save(journal);
         try { platform.Duplicate(journal.Original, journal.Temporary); }
@@ -44,31 +47,58 @@ public sealed class PowerSession(IPowerPlatform platform, string journalPath)
 
     public void Start(Guid id, int initialLimit)
     {
-        var journal = Require(id);
-        if (platform.ActiveScheme != journal.Original)
-            throw new InvalidOperationException("Le profil Windows a changé pendant le démarrage.");
-        platform.SetLimit(journal.Temporary, initialLimit);
-        platform.Activate(journal.Temporary);
-        Save(journal with { Heartbeat = DateTimeOffset.UtcNow });
+        Apply(id, initialLimit);
     }
 
-    public void Apply(Guid id, int limit)
+    public PowerSynchronization Apply(Guid id, int limit)
     {
-        var journal = Require(id);
-        if (platform.ActiveScheme != journal.Temporary)
-            throw new InvalidOperationException("Le profil d’alimentation a été changé hors de Thermal Pilot. La régulation est arrêtée.");
-        platform.SetLimit(journal.Temporary, limit);
-        platform.Activate(journal.Temporary);
-        Save(journal with { Heartbeat = DateTimeOffset.UtcNow });
+        if (limit is < ThermalController.MinimumLimit or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
+        bool profileChanged = false;
+        // OEM utilities may switch again during duplication. Follow their latest choice,
+        // with bounded work per sample rather than disabling regulation or spinning forever.
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            var journal = Require(id);
+            Guid active = platform.ActiveScheme;
+            bool adopting = active != journal.Temporary;
+            if (adopting)
+            {
+                var schemes = Managed(journal).ToList();
+                // A game can restore a temporary scheme captured when it launched.
+                // Resolve it to its source instead of cloning an already capped profile.
+                var selected = schemes.FirstOrDefault(s => s.Temporary == active)
+                    ?? schemes.FirstOrDefault(s => s.Original == active);
+                bool duplicate = selected is null;
+                selected ??= new ManagedScheme(active, Guid.NewGuid());
+                if (duplicate) schemes.Add(selected);
+                profileChanged |= selected.Original != journal.Original;
+                journal = journal with
+                {
+                    Original = selected.Original, Temporary = selected.Temporary,
+                    Schemes = schemes, Heartbeat = DateTimeOffset.UtcNow
+                };
+                // Persist every owned clone before creation, so recovery can clean up
+                // even if the process stops halfway through following a new profile.
+                Save(journal);
+                if (duplicate) platform.Duplicate(selected.Original, selected.Temporary);
+            }
+
+            if (adopting || limit != journal.Limit)
+            {
+                platform.SetLimit(journal.Temporary, limit);
+                if (platform.ActiveScheme != active) continue;
+                platform.Activate(journal.Temporary);
+            }
+            Save(journal with { Limit = limit, Heartbeat = DateTimeOffset.UtcNow });
+            if (platform.ActiveScheme == journal.Temporary) return new(profileChanged, false);
+        }
+        return new(profileChanged, true);
     }
 
-    public void Heartbeat(Guid id)
-    {
-        var journal = Require(id);
-        if (platform.ActiveScheme != journal.Temporary)
-            throw new InvalidOperationException("Le profil Windows a changé. La régulation est arrêtée.");
-        Save(journal with { Heartbeat = DateTimeOffset.UtcNow });
-    }
+    public PowerSynchronization Heartbeat(Guid id) => Apply(id, Require(id).Limit);
+
+    private static IReadOnlyList<ManagedScheme> Managed(SessionJournal journal) =>
+        journal.Schemes ?? [new(journal.Original, journal.Temporary)];
 
     private SessionJournal Require(Guid id)
     {
@@ -80,9 +110,13 @@ public sealed class PowerSession(IPowerPlatform platform, string journalPath)
     {
         var journal = Read();
         if (journal is null) return;
-        // Respect a power plan explicitly selected by the user while the application was running.
-        if (platform.ActiveScheme == journal.Temporary) platform.Activate(journal.Original);
-        platform.Delete(journal.Temporary);
+        var schemes = Managed(journal);
+        Guid active = platform.ActiveScheme;
+        var current = schemes.FirstOrDefault(s => s.Temporary == active);
+        // Restore the source of whichever managed clone is actually active. Leave
+        // an external profile alone if the application has not adopted it yet.
+        if (current is not null) platform.Activate(current.Original);
+        foreach (var scheme in schemes) platform.Delete(scheme.Temporary);
         // Keep the journal when recovery fails, allowing retry at next launch.
         File.Delete(journalPath);
     }

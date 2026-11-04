@@ -2,9 +2,9 @@
 
 Utilitaire Windows natif en français : définir une température CPU cible et laisser l’application réduire automatiquement le plafond de performances Windows au-dessus de cette cible.
 
-**[Télécharger l’installeur Windows x64](https://github.com/MonkeyTime/ThermalPilot/releases/download/v0.3.2/ThermalPilot-0.3.2-Setup-x64.exe)** · [Version portable et empreintes SHA-256](https://github.com/MonkeyTime/ThermalPilot/releases/latest)
+**[Télécharger l’installeur Windows x64](https://github.com/MonkeyTime/ThermalPilot/releases/download/v0.3.3/ThermalPilot-0.3.3-Setup-x64.exe)** · [Version portable et empreintes SHA-256](https://github.com/MonkeyTime/ThermalPilot/releases/latest)
 
-La version **0.3.2** propose une température cible unique, un bridage progressif, un retour des performances après refroidissement, une icône de notification et un démarrage automatique optionnel à l’ouverture de session Windows. Elle vise les processeurs Intel et AMD x64 sur portables et PC fixes. La compatibilité thermique reste dépendante du matériel et du firmware.
+La version **0.3.3** propose une température cible unique, un bridage progressif, un retour des performances après refroidissement, une icône de notification et un démarrage automatique optionnel à l’ouverture de session Windows. Elle conserve la régulation lorsque le jeu ou un utilitaire constructeur change le profil d’alimentation. Elle vise les processeurs Intel et AMD x64 sur portables et PC fixes. La compatibilité thermique reste dépendante du matériel et du firmware.
 
 **PawnIO s’installe séparément** s’il manque ; .NET est déjà inclus dans les téléchargements. L’application nécessite les droits administrateur pour la régulation. Consulte les prérequis et les limites ci-dessous avant utilisation.
 
@@ -30,7 +30,7 @@ Ces vérifications établissent la disponibilité des mesures et des réglages ;
 
 ### Installeur Windows (version 0.3.2)
 
-Exécuter `ThermalPilot-0.3.2-Setup-x64.exe`. L’assistant en français installe l’application pour le compte Windows courant, par défaut dans `%LOCALAPPDATA%\Programs\ThermalPilot`, ajoute une entrée au menu Démarrer et propose un raccourci sur le bureau. L’application apparaît dans les applications installées de Windows pour sa désinstallation. .NET est inclus ; **PawnIO reste à installer séparément** s’il manque. La dernière page de l’assistant propose d’ouvrir sa page officielle.
+Exécuter `ThermalPilot-0.3.3-Setup-x64.exe`. L’assistant en français installe l’application pour le compte Windows courant, par défaut dans `%LOCALAPPDATA%\Programs\ThermalPilot`, ajoute une entrée au menu Démarrer et propose un raccourci sur le bureau. L’application apparaît dans les applications installées de Windows pour sa désinstallation. .NET est inclus ; **PawnIO reste à installer séparément** s’il manque. La dernière page de l’assistant propose d’ouvrir sa page officielle.
 
 Fermer Thermal Pilot depuis son icône de notification avant une mise à jour ou une désinstallation. La désinstallation supprime la tâche de démarrage du compte courant si elle pointe vers le dossier désinstallé, rétablit un éventuel profil temporaire et conserve la température cible. Une tâche liée à une autre copie de Thermal Pilot reste en place. Si ces opérations nécessitent les droits administrateur, une élévation est demandée. L’application doit utiliser le même compte Windows pour ce nettoyage. PawnIO reste installé pour les autres utilitaires qui pourraient l’utiliser.
 
@@ -83,7 +83,9 @@ Le CPU est le seul composant régulé dans cette version. Aucun contrôle GPU, v
 
 L’application duplique le profil actif et modifie uniquement cette copie temporaire. Le profil original conserve ses valeurs. Un journal est enregistré **avant** toute modification dans `%LOCALAPPDATA%\ThermalPilot\power-session.json`.
 
-Un processus de secours indépendant, démarré avant l’activation, restaure le profil après la mort de l’application ou après 15 secondes sans signal de vie. Au lancement suivant, un journal résiduel est également restauré. En cas d’échec de restauration, le journal est conservé pour permettre une nouvelle tentative. Si l’utilisateur sélectionne un autre profil Windows pendant la régulation, celle-ci s’arrête et respecte ce nouveau choix.
+Un processus de secours indépendant, démarré avant l’activation, restaure le profil après la mort de l’application ou après 15 secondes sans signal de vie. Au lancement suivant, un journal résiduel est également restauré. En cas d’échec de restauration, le journal est conservé pour permettre une nouvelle tentative.
+
+Depuis la version 0.3.3, un changement de profil Windows ne coupe plus la régulation. L’application suit le nouveau profil via sa propre copie temporaire, en conservant la cible et le plafond thermique courant. Les copies sont réutilisées lors des allers-retours entre profils ; si un jeu restaure une copie temporaire enregistrée au lancement, celle-ci est rattachée à son véritable profil source. À l’arrêt, le dernier profil source sélectionné est rétabli et toutes les copies sont supprimées. Les profils d’origine ne sont pas modifiés. Les bascules très rapides sont traitées avec un nombre limité de tentatives par mesure et une reprise à la mesure suivante, pour éviter une boucle bloquante. Un message d’erreur réel reste affiché au lieu de disparaître derrière « En veille ».
 
 Après une coupure complète de Windows, aucun processus ne peut exécuter de restauration : relancer Thermal Pilot pour restaurer le profil. En dépannage, sélectionner manuellement le profil d’origine dans les options d’alimentation. Le journal contient son GUID dans `Original` ; `powercfg /setactive GUID` permet de le réactiver. Ne pas effacer ce journal avant restauration.
 
@@ -116,7 +118,7 @@ Le script détecte aussi un SDK local dans `.tools/dotnet`. La sortie est dans `
 ./dist/ThermalPilot-win-x64/ThermalPilot.exe --demo --capture preview.png
 ```
 
-Les 47 tests couvrent la réaction aux dépassements, l’hystérésis, le retour progressif, les sondes invalides, la restauration après interruption, le respect d’un changement de profil externe, les erreurs de restauration, les politiques Windows classiques et hybrides, les plafonds distincts secteur/batterie, la couverture thermique de plusieurs sockets, la sauvegarde immédiate des préférences, la migration de l’ancien format, les échecs d’écriture et la définition de la tâche de démarrage. Ils utilisent des données et une plateforme d’alimentation simulées. Le XML de la tâche a également été accepté par le Planificateur de tâches Windows, sans enregistrer ni activer de tâche sur le poste de développement. L’enregistrement élevé et le lancement réel à l’ouverture de session restent à vérifier en administrateur. Le diagnostic a détecté un Intel Core Ultra 9 275HX, PawnIO et trois classes Windows lisibles, mais aucune température dans une session non administrateur : **la lecture thermique et l’effet réel du bridage restent à valider en administrateur sur le PC cible**.
+Les 58 tests couvrent la réaction aux dépassements, l’hystérésis, le retour progressif, les sondes invalides, la restauration après interruption, le respect d’un changement de profil externe, les erreurs de restauration, les politiques Windows classiques et hybrides, les plafonds distincts secteur/batterie, la couverture thermique de plusieurs sockets, la sauvegarde immédiate des préférences, la migration de l’ancien format, les échecs d’écriture et la définition de la tâche de démarrage. Ils utilisent des données et une plateforme d’alimentation simulées. Le XML de la tâche a également été accepté par le Planificateur de tâches Windows, sans enregistrer ni activer de tâche sur le poste de développement. L’enregistrement élevé et le lancement réel à l’ouverture de session restent à vérifier en administrateur. Le diagnostic a détecté un Intel Core Ultra 9 275HX, PawnIO et trois classes Windows lisibles, mais aucune température dans une session non administrateur : **la lecture thermique et l’effet réel du bridage restent à valider en administrateur sur le PC cible**.
 
 ## Références et dépendances
 

@@ -13,7 +13,7 @@ public sealed class RegulationService(bool demo) : IDisposable
     private CpuReading? _lastReading;
     private long _lastReadingAt;
     private int _demoTick;
-    private int _lastApplied = 100;
+    private string? _lastError;
     private int _probeTick;
     private PowerSupport _powerSupport = new(false, "Vérification du contrôle Windows…", Array.Empty<int>());
     public bool PowerSettingsAvailable => demo || _powerSupport.Available;
@@ -46,26 +46,22 @@ public sealed class RegulationService(bool demo) : IDisposable
                 Compatibility = demo ? "Intel / AMD · portables et PC fixes · aperçu simulé"
                     : _powerSupport.Detail + $" · Sondes CPU : {reading.DevicesWithTemperature}/{reading.DeviceCount}";
 
-                if (!Active) return new Snapshot(reading, 100, "En veille",
-                    !PowerSettingsAvailable ? _powerSupport.Detail
+                if (!Active) return new Snapshot(reading, 100, _lastError is null ? "En veille" : "Régulation interrompue",
+                    _lastError ?? (!PowerSettingsAvailable ? _powerSupport.Detail
                         : ThermalController.IsValid(reading.Temperature) ? "Choisis ta température cible, puis active la régulation."
-                        : "Sonde CPU indisponible. Lance en administrateur et vérifie l’installation de PawnIO.", false, false);
+                        : "Sonde CPU indisponible. Lance en administrateur et vérifie l’installation de PawnIO."), false, _lastError is not null);
 
                 var decision = _controller.Step(reading.Temperature, Target);
+                PowerSynchronization synchronization = new(false, false);
                 try
                 {
                     if (_sessionId is Guid id)
-                        Recovery.Locked(session =>
-                        {
-                            if (_lastApplied != decision.Limit) session.Apply(id, decision.Limit);
-                            else session.Heartbeat(id);
-                            _lastApplied = decision.Limit;
-                            return true;
-                        });
+                        synchronization = Recovery.Locked(session => session.Apply(id, decision.Limit));
                 }
                 catch (Exception ex)
                 {
                     Recovery.Log(ex);
+                    _lastError = ex.Message;
                     StopCore();
                     return new Snapshot(reading, 100, "Régulation interrompue", ex.Message, false, true);
                 }
@@ -79,6 +75,12 @@ public sealed class RegulationService(bool demo) : IDisposable
                 };
                 if (decision.Limit == ThermalController.MinimumLimit && decision.State == ThermalState.Cooling)
                     detail = "Plafond minimum atteint. La cible reste dépassée ; le refroidissement peut être insuffisant.";
+                if (synchronization.ProfileChanged) detail += " Le nouveau profil Windows est suivi automatiquement.";
+                if (synchronization.Pending)
+                {
+                    status = "Adaptation du profil";
+                    detail = "Un logiciel change le profil Windows. Application du plafond en attente ; nouvel essai à la prochaine mesure.";
+                }
                 return new Snapshot(reading, decision.Limit, status, detail, true, decision.State == ThermalState.SensorLost);
             });
         }
@@ -97,6 +99,7 @@ public sealed class RegulationService(bool demo) : IDisposable
                     || Stopwatch.GetElapsedTime(_lastReadingAt) > TimeSpan.FromSeconds(3))
                     throw new InvalidOperationException("Une mesure CPU valide et récente est nécessaire.");
                 _controller.Reset();
+                _lastError = null;
                 if (demo) { _demoActive = true; return; }
                 if (!Recovery.IsAdmin) throw new InvalidOperationException("Relance l’application en administrateur pour activer la régulation.");
                 _powerSupport = WindowsPowerPlatform.Probe();
@@ -108,7 +111,6 @@ public sealed class RegulationService(bool demo) : IDisposable
                     Recovery.StartWatchdog(journal);
                     int limit = _controller.Step(_lastReading.Temperature, Target).Limit;
                     Recovery.Locked(session => { session.Start(journal.Id, limit); return true; });
-                    _lastApplied = limit;
                     _sessionId = journal.Id;
                 }
                 catch { Recovery.Restore(); throw; }
@@ -120,7 +122,7 @@ public sealed class RegulationService(bool demo) : IDisposable
     public async Task StopAsync()
     {
         await _gate.WaitAsync();
-        try { await Task.Run(StopCore); }
+        try { await Task.Run(StopCore); _lastError = null; }
         finally { _gate.Release(); }
     }
 

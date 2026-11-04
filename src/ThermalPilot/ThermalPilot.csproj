@@ -8,7 +8,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets/ThermalPilot.ico</ApplicationIcon>
     <AssemblyName>ThermalPilot</AssemblyName>
-    <Version>0.3.2</Version>
+    <Version>0.3.3</Version>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
