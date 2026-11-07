@@ -12,6 +12,7 @@ try {
     & $dotnetCommand publish src/ThermalPilot/ThermalPilot.csproj -c Release -r win-x64 --self-contained true -o dist/ThermalPilot-win-x64
     if ($LASTEXITCODE -ne 0) { throw 'La publication a échoué.' }
     Copy-Item -LiteralPath README.md -Destination dist/ThermalPilot-win-x64/README.md
+    Copy-Item -LiteralPath LICENSE -Destination dist/ThermalPilot-win-x64/LICENSE
     Copy-Item -LiteralPath LISEZ-MOI.txt -Destination dist/ThermalPilot-win-x64/LISEZ-MOI.txt
     Copy-Item -LiteralPath licenses -Destination dist/ThermalPilot-win-x64 -Recurse -Force
     Compress-Archive -Path dist/ThermalPilot-win-x64/* -DestinationPath dist/ThermalPilot-win-x64.zip -Force

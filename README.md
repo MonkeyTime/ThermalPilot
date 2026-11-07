@@ -130,3 +130,7 @@ Les 58 tests couvrent la réaction aux dépassements, l’hystérésis, le retou
 - [Contexte de sécurité des tâches planifiées — Microsoft](https://learn.microsoft.com/en-us/windows/win32/taskschd/security-contexts-for-running-tasks).
 
 Thermal Pilot est un projet indépendant, sans affiliation à UXTU. Les notices des dépendances accompagnent la distribution dans `licenses/`.
+
+## Licence
+
+Le code de Thermal Pilot est distribué sous [licence MIT](LICENSE). Les dépendances tierces conservent leurs licences respectives.
