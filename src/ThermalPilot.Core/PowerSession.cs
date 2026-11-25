@@ -19,17 +19,57 @@ public record SessionJournal(Guid Id, Guid Original, Guid Temporary, int OwnerPi
 /// <summary>Caller serializes access across the UI process and recovery process.</summary>
 public sealed class PowerSession(IPowerPlatform platform, string journalPath)
 {
-    public SessionJournal? Read() => File.Exists(journalPath)
-        ? JsonSerializer.Deserialize<SessionJournal>(File.ReadAllText(journalPath))
-            ?? throw new IOException("Journal de restauration vide.")
-        : null;
+    public SessionJournal? Read()
+    {
+        string path = File.Exists(journalPath) ? journalPath : journalPath + ".bak";
+        if (!File.Exists(path)) return null;
+        try { return ReadJournal(path); }
+        catch (JsonException ex)
+        {
+            if (path == journalPath && File.Exists(journalPath + ".bak"))
+            {
+                try { return ReadJournal(journalPath + ".bak"); }
+                catch (JsonException) { }
+            }
+            throw new IOException("Le journal de restauration est endommagé et aucune copie de secours valide n’est disponible. " +
+                "Conserve le journal pour le diagnostic et sélectionne ton profil d’alimentation habituel dans Windows.", ex);
+        }
+    }
 
-    private void Save(SessionJournal journal)
+    private static SessionJournal ReadJournal(string path)
+    {
+        var journal = JsonSerializer.Deserialize<SessionJournal>(File.ReadAllText(path))
+            ?? throw new JsonException("Journal de restauration vide.");
+        if (journal.Id == Guid.Empty || journal.Original == Guid.Empty || journal.Temporary == Guid.Empty ||
+            journal.Original == journal.Temporary ||
+            Managed(journal).Count == 0 || Managed(journal).Any(s => s.Original == Guid.Empty ||
+                s.Temporary == Guid.Empty || s.Original == s.Temporary))
+            throw new JsonException("Journal de restauration incomplet.");
+        return journal;
+    }
+
+    private void Save(SessionJournal journal, bool recoveryChanged = false)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(journalPath)!);
-        string temporary = journalPath + ".tmp";
-        File.WriteAllText(temporary, JsonSerializer.Serialize(journal));
-        File.Move(temporary, journalPath, true);
+        // Persist recovery metadata separately before creating or activating a clone.
+        // Heartbeat updates must never overwrite this independent recovery copy.
+        if (recoveryChanged) WriteJournal(journalPath + ".bak", journal);
+        WriteJournal(journalPath, journal);
+    }
+
+    private static void WriteJournal(string path, SessionJournal journal)
+    {
+        string temporary = path + ".tmp";
+        try
+        {
+            using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(stream, journal);
+                stream.Flush(flushToDisk: true);
+            }
+            File.Move(temporary, path, true);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
     public SessionJournal Prepare(int pid, long startTicks)
@@ -39,7 +79,7 @@ public sealed class PowerSession(IPowerPlatform platform, string journalPath)
         var journal = new SessionJournal(Guid.NewGuid(), original, temporary,
             pid, startTicks, DateTimeOffset.UtcNow, [new(original, temporary)]);
         // Journal precedes all mutations, including duplication, so interrupted startup is recoverable.
-        Save(journal);
+        Save(journal, recoveryChanged: true);
         try { platform.Duplicate(journal.Original, journal.Temporary); }
         catch { Restore(); throw; }
         return journal;
@@ -79,7 +119,7 @@ public sealed class PowerSession(IPowerPlatform platform, string journalPath)
                 };
                 // Persist every owned clone before creation, so recovery can clean up
                 // even if the process stops halfway through following a new profile.
-                Save(journal);
+                Save(journal, recoveryChanged: true);
                 if (duplicate) platform.Duplicate(selected.Original, selected.Temporary);
             }
 
@@ -119,5 +159,6 @@ public sealed class PowerSession(IPowerPlatform platform, string journalPath)
         foreach (var scheme in schemes) platform.Delete(scheme.Temporary);
         // Keep the journal when recovery fails, allowing retry at next launch.
         File.Delete(journalPath);
+        File.Delete(journalPath + ".bak");
     }
 }

@@ -247,6 +247,71 @@ public sealed class SessionTests : IDisposable
         Assert.False(File.Exists(PathName));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BackupRecoversNullFilledOrMissingJournal(bool missing)
+    {
+        var session = new PowerSession(_power, PathName);
+        var journal = session.Prepare(1, 1);
+        session.Start(journal.Id, 60);
+        var external = AddProfile();
+        _power.Activate(external);
+        session.Apply(journal.Id, 40);
+        if (missing) File.Delete(PathName);
+        else File.WriteAllBytes(PathName, new byte[374]);
+
+        new PowerSession(_power, PathName).Restore();
+
+        Assert.Equal(external, _power.ActiveScheme);
+        Assert.Equal(2, _power.Schemes.Count);
+        Assert.False(File.Exists(PathName));
+        Assert.False(File.Exists(PathName + ".bak"));
+        Assert.Null(session.Read());
+    }
+
+    [Fact]
+    public void CorruptJournalWithoutBackupPreservesEvidenceAndPowerProfile()
+    {
+        var session = new PowerSession(_power, PathName);
+        var journal = session.Prepare(1, 1);
+        session.Start(journal.Id, 40);
+        File.Delete(PathName + ".bak");
+        File.WriteAllBytes(PathName, new byte[374]);
+
+        var error = Assert.Throws<IOException>(session.Restore);
+
+        Assert.Contains("endommagé", error.Message);
+        Assert.Equal(journal.Temporary, _power.ActiveScheme);
+        Assert.Equal(new byte[374], File.ReadAllBytes(PathName));
+    }
+
+    [Fact]
+    public void InvalidBackupAlsoPreservesBothFiles()
+    {
+        var session = new PowerSession(_power, PathName);
+        session.Prepare(1, 1);
+        File.WriteAllText(PathName, "null");
+        File.WriteAllText(PathName + ".bak", "{}");
+
+        Assert.Throws<IOException>(session.Restore);
+
+        Assert.Equal("null", File.ReadAllText(PathName));
+        Assert.Equal("{}", File.ReadAllText(PathName + ".bak"));
+    }
+
+    [Fact]
+    public void HeartbeatDoesNotOverwriteIndependentRecoveryBackup()
+    {
+        var session = new PowerSession(_power, PathName);
+        var journal = session.Prepare(1, 1);
+        session.Start(journal.Id, 40);
+        string backup = File.ReadAllText(PathName + ".bak");
+        session.Heartbeat(journal.Id);
+        Assert.Equal(backup, File.ReadAllText(PathName + ".bak"));
+        session.Restore();
+    }
+
     private Guid AddProfile()
     {
         Guid profile = Guid.NewGuid();

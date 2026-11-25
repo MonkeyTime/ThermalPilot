@@ -78,7 +78,8 @@ public partial class App : System.Windows.Application
             catch (Exception ex)
             {
                 Recovery.Log(ex);
-                System.Windows.MessageBox.Show("La restauration du profil précédent a échoué. Relance en administrateur.\n\n" + ex.Message,
+                System.Windows.MessageBox.Show("La restauration du profil précédent a échoué.\n\n" + ex.Message +
+                    (ex is UnauthorizedAccessException ? "\n\nRelance en administrateur." : ""),
                     "Thermal Pilot — restauration nécessaire");
                 Shutdown(1);
                 return;
