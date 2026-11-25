@@ -2,9 +2,9 @@
 
 Utilitaire Windows natif en français : définir une température CPU cible et laisser l’application réduire automatiquement le plafond de performances Windows au-dessus de cette cible.
 
-**[Télécharger l’installeur Windows x64](https://github.com/MonkeyTime/ThermalPilot/releases/download/v0.3.3/ThermalPilot-0.3.3-Setup-x64.exe)** · [Version portable et empreintes SHA-256](https://github.com/MonkeyTime/ThermalPilot/releases/latest)
+**[Télécharger l’installeur Windows x64](https://github.com/MonkeyTime/ThermalPilot/releases/download/v0.3.4/ThermalPilot-0.3.4-Setup-x64.exe)** · [Version portable et empreintes SHA-256](https://github.com/MonkeyTime/ThermalPilot/releases/latest)
 
-La version **0.3.3** propose une température cible unique, un bridage progressif, un retour des performances après refroidissement, une icône de notification et un démarrage automatique optionnel à l’ouverture de session Windows. Elle conserve la régulation lorsque le jeu ou un utilitaire constructeur change le profil d’alimentation. Elle vise les processeurs Intel et AMD x64 sur portables et PC fixes. La compatibilité thermique reste dépendante du matériel et du firmware.
+La version **0.3.4** propose une température cible unique, un bridage progressif, un retour des performances après refroidissement, une icône de notification et un démarrage automatique optionnel à l’ouverture de session Windows. Elle conserve la régulation lorsque le jeu ou un utilitaire constructeur change le profil d’alimentation. Elle vise les processeurs Intel et AMD x64 sur portables et PC fixes. La compatibilité thermique reste dépendante du matériel et du firmware.
 
 **PawnIO s’installe séparément** s’il manque ; .NET est déjà inclus dans les téléchargements. L’application nécessite les droits administrateur pour la régulation. Consulte les prérequis et les limites ci-dessous avant utilisation.
 
